@@ -7,7 +7,7 @@ services:
       - ..:/workspaces/next-ship:cached
       - next-ship-node-modules:/workspaces/next-ship/node_modules
     environment:
-      - DATABASE_URL=postgresql://postgres:dev@db:5432/postgres
+      - DATABASE_URL=YOUR_DATABASE_URL_HERE
       - REDIS_URL=redis://redis:6379
     command: sleep infinity
     networks:
