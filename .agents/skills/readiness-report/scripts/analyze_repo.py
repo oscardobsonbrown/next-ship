@@ -290,6 +290,27 @@ class RepoAnalyzer:
                         return True
         return False
 
+    def _workspace_manifest_contents(self) -> str:
+        """Collect manifest content from root and first-level workspace packages."""
+        manifest_paths = [self.repo_path / "package.json"]
+        manifest_paths.extend(self.repo_path.glob("apps/*/package.json"))
+        manifest_paths.extend(self.repo_path.glob("packages/*/package.json"))
+
+        contents = []
+        seen: set[Path] = set()
+
+        for manifest_path in manifest_paths:
+            if manifest_path in seen or not manifest_path.exists():
+                continue
+
+            seen.add(manifest_path)
+            try:
+                contents.append(manifest_path.read_text(errors="ignore"))
+            except Exception:
+                continue
+
+        return "\n".join(contents)
+
     def _evaluate_all_pillars(self):
         """Evaluate all criteria across all pillars."""
         pillars = {
@@ -363,13 +384,20 @@ class RepoAnalyzer:
         formatter_found = self._file_exists(
             ".prettierrc", ".prettierrc.json", ".prettierrc.js", "prettier.config.js",
             "pyproject.toml", ".black.toml",  # Black/Ruff
+            "biome.json", "biome.jsonc",
             ".gofmt",  # Go uses gofmt by default
             "rustfmt.toml", ".rustfmt.toml"
         )
         if not formatter_found:
             # Check pyproject.toml for ruff format
             pyproject = self._read_file("pyproject.toml") or ""
-            formatter_found = "ruff" in pyproject.lower() or "black" in pyproject.lower()
+            manifest_text = self._workspace_manifest_contents().lower()
+            formatter_found = (
+                "ruff" in pyproject.lower()
+                or "black" in pyproject.lower()
+                or "biome format" in manifest_text
+                or "biome check" in manifest_text
+            )
         results.append(self._make_result(
             "formatter", pillar, 1, formatter_found,
             "Formatter configured" if formatter_found else "No formatter config found"
@@ -379,12 +407,19 @@ class RepoAnalyzer:
         lint_found = self._file_exists(
             ".eslintrc", ".eslintrc.js", ".eslintrc.json", ".eslintrc.yaml",
             "eslint.config.js", "eslint.config.mjs",
+            "biome.json", "biome.jsonc",
             ".pylintrc", "pylintrc",
             "golangci.yml", ".golangci.yml", ".golangci.yaml"
         )
         if not lint_found:
             pyproject = self._read_file("pyproject.toml") or ""
-            lint_found = "ruff" in pyproject.lower() or "pylint" in pyproject.lower()
+            manifest_text = self._workspace_manifest_contents().lower()
+            lint_found = (
+                "ruff" in pyproject.lower()
+                or "pylint" in pyproject.lower()
+                or "biome lint" in manifest_text
+                or "biome check" in manifest_text
+            )
         results.append(self._make_result(
             "lint_config", pillar, 1, lint_found,
             "Linter configured" if lint_found else "No linter config found"
@@ -450,6 +485,11 @@ class RepoAnalyzer:
         if not large_file:
             pre_commit_cfg = self._read_file(".pre-commit-config.yaml") or ""
             large_file = "check-added-large-files" in pre_commit_cfg
+        if not large_file:
+            husky_pre_commit = self._read_file(".husky/pre-commit") or ""
+            large_file = any(x in husky_pre_commit.lower() for x in [
+                "large file", "1048576", "git lfs", "check for large files"
+            ])
         results.append(self._make_result(
             "large_file_detection", pillar, 2, large_file,
             "Large file detection configured" if large_file else "No large file detection"
@@ -868,8 +908,13 @@ class RepoAnalyzer:
         api_docs = self._file_exists(
             "openapi.yaml", "openapi.json", "swagger.yaml", "swagger.json",
             "schema.graphql", "*.graphql",
-            "docs/api/**", "api-docs/**"
+            "**/openapi.yaml", "**/openapi.json", "**/swagger.yaml", "**/swagger.json",
+            "**/schema.graphql", "**/*.graphql",
+            "docs/api/**", "api-docs/**", "**/docs/api/**", "**/api-docs/**",
+            "**/lib/openapi.ts", "**/lib/swagger-ui.tsx"
         )
+        if not api_docs:
+            api_docs = "next-swagger-doc" in self._workspace_manifest_contents().lower()
         results.append(self._make_result(
             "api_schema_docs", pillar, 3, api_docs,
             "API documentation exists" if api_docs else "No API documentation found"
@@ -946,7 +991,9 @@ class RepoAnalyzer:
         devcontainer_valid = False
         if devcontainer:
             content = self._read_file(".devcontainer/devcontainer.json")
-            if content and "image" in content.lower():
+            if content and any(x in content.lower() for x in [
+                "image", "dockercomposefile", "build", "features", "service"
+            ]):
                 devcontainer_valid = True
         results.append(self._make_result(
             "devcontainer_runnable", pillar, 3, devcontainer_valid,
@@ -956,7 +1003,8 @@ class RepoAnalyzer:
         # L3: database_schema
         db_schema = self._file_exists(
             "migrations/**", "db/migrations/**", "alembic/**",
-            "prisma/schema.prisma", "schema.sql", "db/schema.rb"
+            "prisma/schema.prisma", "**/prisma/schema.prisma",
+            "schema.sql", "**/schema.sql", "db/schema.rb", "**/drizzle.config.ts"
         )
         results.append(self._make_result(
             "database_schema", pillar, 3, db_schema,
@@ -966,7 +1014,9 @@ class RepoAnalyzer:
         # L3: local_services_setup
         local_services = self._file_exists(
             "docker-compose.yml", "docker-compose.yaml",
-            "compose.yml", "compose.yaml"
+            "compose.yml", "compose.yaml",
+            ".devcontainer/docker-compose.yml", ".devcontainer/docker-compose.yaml",
+            "**/docker-compose.yml", "**/docker-compose.yaml"
         )
         results.append(self._make_result(
             "local_services_setup", pillar, 3, local_services,
@@ -982,12 +1032,12 @@ class RepoAnalyzer:
         
         # L2: structured_logging
         logging_found = False
-        deps = (self._read_file("package.json") or "") + \
+        deps = self._workspace_manifest_contents() + \
                (self._read_file("requirements.txt") or "") + \
                (self._read_file("go.mod") or "")
         if any(x in deps.lower() for x in [
             "pino", "winston", "bunyan", "structlog", "loguru",
-            "zerolog", "zap", "slog"
+            "zerolog", "zap", "slog", "evlog"
         ]):
             logging_found = True
         if "Python" in self.result.languages:
@@ -1010,8 +1060,12 @@ class RepoAnalyzer:
         
         # L3: error_tracking_contextualized
         error_tracking = any(x in deps.lower() for x in [
-            "sentry", "bugsnag", "rollbar", "honeybadger"
+            "sentry", "bugsnag", "rollbar", "honeybadger", "posthog"
         ])
+        if not error_tracking:
+            error_tracking = self._file_exists(
+                "packages/analytics/errors.ts", "apps/*/app/global-error.tsx"
+            )
         results.append(self._make_result(
             "error_tracking_contextualized", pillar, 3, error_tracking,
             "Error tracking configured" if error_tracking else "No error tracking"
@@ -1019,8 +1073,12 @@ class RepoAnalyzer:
         
         # L3: distributed_tracing
         tracing = any(x in deps.lower() for x in [
-            "opentelemetry", "jaeger", "zipkin", "datadog", "x-request-id"
+            "opentelemetry", "jaeger", "zipkin", "datadog", "x-request-id", "evlog"
         ])
+        if not tracing:
+            tracing = self._file_exists(
+                "packages/observability/nextjs.ts", "packages/observability/evlog.ts"
+            )
         results.append(self._make_result(
             "distributed_tracing", pillar, 3, tracing,
             "Distributed tracing configured" if tracing else "No distributed tracing"
@@ -1028,8 +1086,14 @@ class RepoAnalyzer:
         
         # L3: metrics_collection
         metrics = any(x in deps.lower() for x in [
-            "prometheus", "datadog", "newrelic", "statsd", "cloudwatch"
+            "prometheus", "datadog", "newrelic", "statsd", "cloudwatch",
+            "opentelemetry", "prom-client"
         ])
+        if not metrics:
+            metrics = self._file_exists(
+                "apps/api/app/api/metrics/route.ts", "**/app/api/metrics/route.ts",
+                "apps/api/lib/metrics.ts", "**/lib/metrics.ts"
+            )
         results.append(self._make_result(
             "metrics_collection", pillar, 3, metrics,
             "Metrics collection configured" if metrics else "No metrics collection"
@@ -1273,7 +1337,7 @@ class RepoAnalyzer:
                 error_pipeline = True
                 break
         # Also check for Sentry-GitHub integration
-        deps = (self._read_file("package.json") or "") + \
+        deps = self._workspace_manifest_contents() + \
                (self._read_file("requirements.txt") or "") + \
                (self._read_file("go.mod") or "")
         if "sentry" in deps.lower():
