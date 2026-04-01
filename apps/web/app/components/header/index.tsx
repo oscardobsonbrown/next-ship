@@ -122,7 +122,7 @@ export const Header = ({ dictionary }: HeaderProps) => {
               fill="currentColor"
             />
           </svg>
-          <p className="whitespace-nowrap font-semibold">next-forge</p>
+          <p className="whitespace-nowrap font-semibold">next-ship</p>
         </div>
         <div className="flex w-full justify-end gap-4">
           <Link href="/contact">

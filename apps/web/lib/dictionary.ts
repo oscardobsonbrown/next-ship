@@ -6,7 +6,7 @@ export const dictionary = {
   web: {
     home: {
       meta: {
-        title: "next-forge",
+        title: "next-ship",
         description: "A comprehensive Next.js starter kit for modern web applications",
       },
       hero: {
@@ -14,16 +14,16 @@ export const dictionary = {
       },
       cta: {
         title: "Ready to get started?",
-        description: "Join thousands of developers building with next-forge",
+        description: "Join thousands of developers building with next-ship",
       },
       faq: {
         title: "Frequently Asked Questions",
-        description: "Everything you need to know about next-forge",
+        description: "Everything you need to know about next-ship",
         cta: "Contact us",
         items: [
           {
-            question: "What is next-forge?",
-            answer: "next-forge is a comprehensive Next.js starter kit for modern web applications.",
+            question: "What is next-ship?",
+            answer: "next-ship is a comprehensive Next.js starter kit for modern web applications.",
           },
           {
             question: "How do I get started?",
@@ -31,7 +31,7 @@ export const dictionary = {
           },
           {
             question: "Is it free to use?",
-            answer: "Yes, next-forge is open source and free to use for personal and commercial projects.",
+            answer: "Yes, next-ship is open source and free to use for personal and commercial projects.",
           },
           {
             question: "What technologies are included?",
@@ -77,7 +77,7 @@ export const dictionary = {
         items: [
           {
             title: "Game changer for our business",
-            description: "next-forge helped us launch our product in record time with enterprise-grade quality.",
+            description: "next-ship helped us launch our product in record time with enterprise-grade quality.",
             author: {
               name: "Sarah Johnson",
               image: "https://api.dicebear.com/7.x/avataaars/svg?seed=sarah",
@@ -93,7 +93,7 @@ export const dictionary = {
           },
           {
             title: "Highly recommended",
-            description: "We've tried many starter kits, but next-forge is by far the most complete and polished.",
+            description: "We've tried many starter kits, but next-ship is by far the most complete and polished.",
             author: {
               name: "Emily Davis",
               image: "https://api.dicebear.com/7.x/avataaars/svg?seed=emily",
