@@ -276,18 +276,27 @@ class RepoAnalyzer:
     
     def _check_feature_flags(self) -> bool:
         """Check if feature flag infrastructure exists."""
-        # Check for common feature flag services
         patterns = [
             "launchdarkly", "statsig", "unleash", "growthbook",
-            "feature.flag", "featureflag", "feature_flag"
+            "feature.flag", "featureflag", "feature_flag",
+            "@vercel/flags", "flags/next", "\"flags\"", "feature-flags"
         ]
-        
-        for pattern in ["package.json", "requirements.txt", "go.mod", "Gemfile"]:
-            content = self._read_file(pattern)
-            if content:
-                for flag_pattern in patterns:
-                    if flag_pattern in content.lower():
-                        return True
+
+        manifest_text = self._workspace_manifest_contents().lower()
+        if any(flag_pattern in manifest_text for flag_pattern in patterns):
+            return True
+
+        for manifest_name in ["requirements.txt", "go.mod", "Gemfile"]:
+            content = self._read_file(manifest_name)
+            if content and any(flag_pattern in content.lower() for flag_pattern in patterns):
+                return True
+
+        if self._file_exists(
+            "packages/feature-flags/**",
+            "apps/*/app/.well-known/vercel/flags/route.ts",
+            "apps/*/src/app/.well-known/vercel/flags/route.ts"
+        ):
+            return True
         return False
 
     def _workspace_manifest_contents(self) -> str:
@@ -506,9 +515,12 @@ class RepoAnalyzer:
         
         # L3: cyclomatic_complexity
         complexity = False
-        for config in [".golangci.yml", ".golangci.yaml", "pyproject.toml"]:
+        for config in [".golangci.yml", ".golangci.yaml", "pyproject.toml", "biome.json", "biome.jsonc"]:
             content = self._read_file(config) or ""
-            if any(x in content.lower() for x in ["gocyclo", "mccabe", "complexity", "radon"]):
+            if any(x in content.lower() for x in [
+                "gocyclo", "mccabe", "complexity", "radon",
+                "noexcessivecognitivecomplexity", "maxallowedcomplexity"
+            ]):
                 complexity = True
                 break
         results.append(self._make_result(
@@ -1214,10 +1226,16 @@ class RepoAnalyzer:
         
         # L3: log_scrubbing
         log_scrub = False
-        deps = (self._read_file("package.json") or "") + \
+        deps = self._workspace_manifest_contents() + \
                (self._read_file("requirements.txt") or "")
         if any(x in deps.lower() for x in ["pino", "redact", "scrub"]):
             log_scrub = True
+        if not log_scrub:
+            log_scrub = self._file_exists(
+                "packages/observability/scrub.ts",
+                "**/*scrub*.ts",
+                "**/*redact*.ts"
+            )
         results.append(self._make_result(
             "log_scrubbing", pillar, 3, log_scrub,
             "Log scrubbing configured" if log_scrub else "No log scrubbing"

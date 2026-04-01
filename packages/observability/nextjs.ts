@@ -1,3 +1,5 @@
+import { scrubLogPayload } from "./scrub";
+
 export type RequestLogger = {
 	emit: () => void;
 	get: () => Record<string, unknown>;
@@ -16,7 +18,7 @@ const createRequestLogger = (): RequestLogger => {
 		emit: () => {},
 		get: () => context,
 		set: (payload) => {
-			Object.assign(context, payload);
+			Object.assign(context, scrubLogPayload(payload));
 		},
 	};
 };

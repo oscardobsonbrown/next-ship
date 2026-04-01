@@ -29,6 +29,12 @@ jobs:
       - name: Typecheck API
         run: pnpm --filter api typecheck
 
+      - name: Dead code detection (Knip)
+        run: pnpm dead-code
+
+      - name: Duplicate code detection (jscpd)
+        run: pnpm duplicate-code
+
       - name: Run tests with coverage
         run: NODE_ENV=test pnpm exec vitest run --config apps/api/vitest.config.mts --coverage.enabled true --coverage.provider v8 --coverage.reportsDirectory apps/api/coverage
 

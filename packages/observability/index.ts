@@ -6,3 +6,4 @@ export {
 	useLogger,
 	withEvlog,
 } from "./nextjs";
+export { isSensitiveLogField, scrubLogPayload } from "./scrub";
