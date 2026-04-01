@@ -1,16 +1,21 @@
 import {
-	Counter,
-	collectDefaultMetrics,
-	Gauge,
-	Histogram,
-	Registry,
-} from "prom-client";
+	PrometheusExporter,
+	PrometheusSerializer,
+} from "@opentelemetry/exporter-prometheus";
+import { MeterProvider } from "@opentelemetry/sdk-metrics";
 
 type MetricsRegistryState = {
-	register: Registry;
-	httpRequestsTotal: Counter<"method" | "route" | "status">;
-	httpRequestDurationSeconds: Histogram<"method" | "route" | "status">;
-	httpRequestsInFlight: Gauge<"route">;
+	httpRequestDurationSeconds: ReturnType<
+		ReturnType<MeterProvider["getMeter"]>["createHistogram"]
+	>;
+	httpRequestsInFlight: ReturnType<
+		ReturnType<MeterProvider["getMeter"]>["createUpDownCounter"]
+	>;
+	httpRequestsTotal: ReturnType<
+		ReturnType<MeterProvider["getMeter"]>["createCounter"]
+	>;
+	prometheusReader: PrometheusExporter;
+	prometheusSerializer: PrometheusSerializer;
 };
 
 declare global {
@@ -18,36 +23,81 @@ declare global {
 }
 
 const initializeMetrics = (): MetricsRegistryState => {
-	const register = new Registry();
-	collectDefaultMetrics({ register });
+	const prometheusReader = new PrometheusExporter({
+		preventServerStart: true,
+		withoutScopeInfo: true,
+		withoutTargetInfo: true,
+	});
+	const meterProvider = new MeterProvider({ readers: [prometheusReader] });
 
-	const httpRequestsTotal = new Counter({
-		name: "http_requests_total",
-		help: "Total number of HTTP requests",
-		labelNames: ["method", "route", "status"],
-		registers: [register],
+	const meter = meterProvider.getMeter("next-ship-api");
+	const prometheusSerializer = new PrometheusSerializer(
+		"",
+		false,
+		undefined,
+		true,
+		true,
+	);
+
+	const httpRequestsTotal = meter.createCounter("http_requests_total", {
+		description: "Total number of HTTP requests",
 	});
 
-	const httpRequestDurationSeconds = new Histogram({
-		name: "http_request_duration_seconds",
-		help: "HTTP request duration in seconds",
-		labelNames: ["method", "route", "status"],
-		buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5],
-		registers: [register],
-	});
+	const httpRequestDurationSeconds = meter.createHistogram(
+		"http_request_duration_seconds",
+		{
+			description: "HTTP request duration in seconds",
+			unit: "s",
+		},
+	);
 
-	const httpRequestsInFlight = new Gauge({
-		name: "http_requests_in_flight",
-		help: "Number of in-flight HTTP requests",
-		labelNames: ["route"],
-		registers: [register],
-	});
+	const httpRequestsInFlight = meter.createUpDownCounter(
+		"http_requests_in_flight",
+		{
+			description: "Number of in-flight HTTP requests",
+		},
+	);
+
+	const nodejsHeapSizeUsedBytes = meter.createObservableGauge(
+		"nodejs_heap_size_used_bytes",
+		{
+			description: "Node.js heap size currently used in bytes",
+			unit: "By",
+		},
+	);
+
+	const processResidentMemoryBytes = meter.createObservableGauge(
+		"process_resident_memory_bytes",
+		{
+			description: "Resident memory size in bytes",
+			unit: "By",
+		},
+	);
+
+	const processUptimeSeconds = meter.createObservableGauge(
+		"process_uptime_seconds",
+		{
+			description: "Process uptime in seconds",
+			unit: "s",
+		},
+	);
+
+	meter.addBatchObservableCallback(
+		(observableResult) => {
+			const memoryUsage = process.memoryUsage();
+			observableResult.observe(nodejsHeapSizeUsedBytes, memoryUsage.heapUsed);
+			observableResult.observe(processResidentMemoryBytes, memoryUsage.rss);
+			observableResult.observe(processUptimeSeconds, process.uptime());
+		},
+		[nodejsHeapSizeUsedBytes, processResidentMemoryBytes, processUptimeSeconds],
+	);
 
 	return {
-		register,
-		httpRequestsTotal,
 		httpRequestDurationSeconds,
 		httpRequestsInFlight,
+		httpRequestsTotal,
+		prometheusReader,
+		prometheusSerializer,
 	};
 };
 
@@ -58,8 +108,11 @@ if (!globalThis.__nextShipApiMetrics) {
 }
 
 export const getMetricsPayload = async () => {
+	const collectionResult = await metrics.prometheusReader.collect();
 	return {
-		contentType: metrics.register.contentType,
-		body: await metrics.register.metrics(),
+		body: metrics.prometheusSerializer.serialize(
+			collectionResult.resourceMetrics,
+		),
+		contentType: "text/plain; version=0.0.4; charset=utf-8",
 	};
 };
