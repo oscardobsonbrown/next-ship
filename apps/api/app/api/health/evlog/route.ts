@@ -35,44 +35,44 @@ import { withMetrics } from "@/lib/with-metrics";
  *               $ref: '#/components/schemas/Error'
  */
 
-const healthEvlogRouteHandler = withEvlog(async (req: Request, { log }) => {
-	log.set({
-		endpoint: "/api/health/evlog",
-		feature: "evlog-demo",
-	});
+const healthEvlogRouteHandler = withEvlog((req: Request, { log }) => {
+  log.set({
+    endpoint: "/api/health/evlog",
+    feature: "evlog-demo",
+  });
 
-	// Simulate some work
-	const startTime = Date.now();
+  // Simulate some work
+  const startTime = Date.now();
 
-	try {
-		// Add context about the request
-		log.set({
-			userAgent: req.headers.get("user-agent"),
-			ip: req.headers.get("x-forwarded-for") ?? "unknown",
-		});
+  try {
+    // Add context about the request
+    log.set({
+      userAgent: req.headers.get("user-agent"),
+      ip: req.headers.get("x-forwarded-for") ?? "unknown",
+    });
 
-		// Simulate a successful operation
-		const duration = Date.now() - startTime;
+    // Simulate a successful operation
+    const duration = Date.now() - startTime;
 
-		log.set({
-			duration,
-			healthStatus: "success",
-		});
+    log.set({
+      duration,
+      healthStatus: "success",
+    });
 
-		return NextResponse.json({
-			status: "healthy",
-			evlog: "enabled",
-			timestamp: new Date().toISOString(),
-		});
-	} catch (_error) {
-		// Structured error with context
-		throw createError({
-			status: 500,
-			message: "Health check failed",
-			why: "Database connection timeout",
-			fix: "Check database connection pool",
-		});
-	}
+    return NextResponse.json({
+      status: "healthy",
+      evlog: "enabled",
+      timestamp: new Date().toISOString(),
+    });
+  } catch (_error) {
+    // Structured error with context
+    throw createError({
+      status: 500,
+      message: "Health check failed",
+      why: "Database connection timeout",
+      fix: "Check database connection pool",
+    });
+  }
 });
 
 export const GET = withMetrics("/api/health/evlog", healthEvlogRouteHandler);

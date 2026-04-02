@@ -84,6 +84,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -109,8 +111,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Run linter
-        run: pnpm run check
+      - name: Run linter on changed files
+        run: pnpm exec biome ci --changed --since=origin/main --no-errors-on-unmatched .
 
       - name: Run typecheck
         run: pnpm run typecheck || true

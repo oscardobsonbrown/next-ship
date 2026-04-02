@@ -42,10 +42,7 @@ export const VercelButton = () => {
   url.searchParams.set("from", "templates");
   url.searchParams.set("project-name", "next-ship");
   url.searchParams.set("repository-name", "next-ship");
-  url.searchParams.set(
-    "repository-url",
-    "https://github.com/vercel/next-ship"
-  );
+  url.searchParams.set("repository-url", "https://github.com/vercel/next-ship");
   url.searchParams.set("root-directory", "apps/app");
   url.searchParams.set("skippable-integrations", "1");
 

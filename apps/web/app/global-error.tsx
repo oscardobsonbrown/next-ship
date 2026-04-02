@@ -1,8 +1,8 @@
 "use client";
 
+import { captureError } from "@repo/analytics";
 import { Button } from "@repo/design-system/components/ui/button";
 import { fonts } from "@repo/design-system/lib/fonts";
-import { captureError } from "@repo/analytics";
 import type NextError from "next/error";
 import { useEffect } from "react";
 
@@ -15,7 +15,8 @@ const GlobalError = ({ error, reset }: GlobalErrorProperties) => {
   useEffect(() => {
     captureError(error, {
       digest: error.digest,
-      location: typeof window !== "undefined" ? window.location.href : undefined,
+      location:
+        typeof window !== "undefined" ? window.location.href : undefined,
     });
   }, [error]);
 

@@ -1,5 +1,5 @@
-import { getApiDocs } from '@/lib/openapi';
-import { SwaggerUI } from '@/lib/swagger-ui';
+import { getApiDocs } from "@/lib/openapi";
+import { SwaggerUI } from "@/lib/swagger-ui";
 
 /**
  * Swagger UI for API documentation

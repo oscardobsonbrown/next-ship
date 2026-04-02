@@ -34,43 +34,43 @@ import { withMetrics } from "@/lib/with-metrics";
  */
 
 const checkoutRouteHandler = withEvlog(async (req: Request, { log }) => {
-	const body = await req.json();
-	const { cartId, userId } = body as { cartId: string; userId: string };
+  const body = await req.json();
+  const { cartId, userId } = body as { cartId: string; userId: string };
 
-	// Set initial context
-	log.set({
-		endpoint: "/api/checkout",
-		cartId,
-		userId,
-	});
+  // Set initial context
+  log.set({
+    endpoint: "/api/checkout",
+    cartId,
+    userId,
+  });
 
-	// Simulate cart lookup
-	const cart = { items: 3, total: 9999, currency: "USD" };
-	log.set({ cart });
+  // Simulate cart lookup
+  const cart = { items: 3, total: 9999, currency: "USD" };
+  log.set({ cart });
 
-	// Simulate payment processing
-	const charge = { id: "ch_123", success: true };
-	log.set({ stripe: { chargeId: charge.id } });
+  // Simulate payment processing
+  const charge = { id: "ch_123", success: true };
+  log.set({ stripe: { chargeId: charge.id } });
 
-	if (!charge.success) {
-		throw createError({
-			status: 402,
-			message: "Payment failed",
-			why: "Card declined by issuer",
-			fix: "Try a different payment method",
-		});
-	}
+  if (!charge.success) {
+    throw createError({
+      status: 402,
+      message: "Payment failed",
+      why: "Card declined by issuer",
+      fix: "Try a different payment method",
+    });
+  }
 
-	// Success - one wide event with all context
-	log.set({
-		orderId: charge.id,
-		checkoutStatus: "complete",
-	});
+  // Success - one wide event with all context
+  log.set({
+    orderId: charge.id,
+    checkoutStatus: "complete",
+  });
 
-	return NextResponse.json({
-		orderId: charge.id,
-		status: "success",
-	});
+  return NextResponse.json({
+    orderId: charge.id,
+    status: "success",
+  });
 });
 
 export const POST = withMetrics("/api/checkout", checkoutRouteHandler);

@@ -9,63 +9,63 @@ import { keys } from "./keys";
 
 // Client-side error capture
 export const captureError = (
-	error: unknown,
-	context?: Record<string, unknown>,
+  error: unknown,
+  context?: Record<string, unknown>
 ) => {
-	const message = error instanceof Error ? error.message : String(error);
+  const message = error instanceof Error ? error.message : String(error);
 
-	posthog.capture("$exception", {
-		$exception_message: message,
-		...context,
-	});
+  posthog.capture("$exception", {
+    $exception_message: message,
+    ...context,
+  });
 };
 
 export const captureMessage = (
-	message: string,
-	level: "error" | "warning" | "info" = "error",
+  message: string,
+  level: "error" | "warning" | "info" = "error"
 ) => {
-	posthog.capture("$exception", {
-		$exception_message: message,
-		$exception_level: level,
-	});
+  posthog.capture("$exception", {
+    $exception_message: message,
+    $exception_level: level,
+  });
 };
 
 // Server-side error capture
 export const serverCaptureError = async (
-	error: unknown,
-	distinctId?: string,
-	context?: Record<string, unknown>,
+  error: unknown,
+  distinctId?: string,
+  context?: Record<string, unknown>
 ) => {
-	const apiKey = keys().NEXT_PUBLIC_POSTHOG_KEY;
+  const apiKey = keys().NEXT_PUBLIC_POSTHOG_KEY;
 
-	if (!apiKey) {
-		return;
-	}
+  if (!apiKey) {
+    return;
+  }
 
-	const client = new PostHogNode(apiKey, {
-		host: keys().NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
-	});
+  const client = new PostHogNode(apiKey, {
+    host: keys().NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
+  });
 
-	client.capture({
-		event: "$exception",
-		distinctId: distinctId || "server",
-		properties: {
-			$exception_message:
-				error instanceof Error ? error.message : String(error),
-			...context,
-		},
-	});
+  client.capture({
+    event: "$exception",
+    distinctId: distinctId || "server",
+    properties: {
+      $exception_message:
+        error instanceof Error ? error.message : String(error),
+      ...context,
+    },
+  });
 
-	await client.shutdown();
+  await client.shutdown();
 };
 
 // Error boundary handler for React
 export const onError = (
-	error: Error,
-	errorInfo: { componentStack?: string },
+  error: Error,
+  errorInfo: { componentStack?: string }
 ) => {
-	captureError(error, {
-		componentStack: errorInfo.componentStack,
-		$exception_type: "react_error_boundary",
-	});
+  captureError(error, {
+    componentStack: errorInfo.componentStack,
+    $exception_type: "react_error_boundary",
+  });
 };

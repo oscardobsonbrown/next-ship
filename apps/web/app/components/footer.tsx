@@ -5,6 +5,7 @@ import { env } from "@/env";
 
 export const Footer = () => (
   <Feed queries={[legal.postsQuery]}>
+    {/* biome-ignore lint/suspicious/useAwait: Server Actions must be async */}
     {async ([data]) => {
       "use server";
 
@@ -70,10 +71,10 @@ export const Footer = () => (
                             rel={
                               item.href.includes("http")
                                 ? "noopener noreferrer"
-                                : undefined
+                                : null
                             }
                             target={
-                              item.href.includes("http") ? "_blank" : undefined
+                              item.href.includes("http") ? "_blank" : null
                             }
                           >
                             <span className="text-xl">{item.title}</span>
@@ -89,12 +90,10 @@ export const Footer = () => (
                             rel={
                               subItem.href.includes("http")
                                 ? "noopener noreferrer"
-                                : undefined
+                                : null
                             }
                             target={
-                              subItem.href.includes("http")
-                                ? "_blank"
-                                : undefined
+                              subItem.href.includes("http") ? "_blank" : null
                             }
                           >
                             <span className="text-foreground/75">

@@ -25,23 +25,23 @@ export const dynamic = "force-dynamic";
  *               $ref: '#/components/schemas/Error'
  */
 export const GET = async () => {
-	try {
-		const { body, contentType } = await getMetricsPayload();
+  try {
+    const { body, contentType } = await getMetricsPayload();
 
-		return new Response(body, {
-			status: 200,
-			headers: {
-				"Cache-Control": "no-store",
-				"Content-Type": contentType,
-			},
-		});
-	} catch (error) {
-		return NextResponse.json(
-			{
-				error: "Failed to collect metrics",
-				why: error instanceof Error ? error.message : String(error),
-			},
-			{ status: 500 },
-		);
-	}
+    return new Response(body, {
+      status: 200,
+      headers: {
+        "Cache-Control": "no-store",
+        "Content-Type": contentType,
+      },
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: "Failed to collect metrics",
+        why: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
+  }
 };

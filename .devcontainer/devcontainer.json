@@ -13,13 +13,7 @@
       "upgradePackages": true
     }
   },
-  "forwardPorts": [
-    3000,
-    3001,
-    5555,
-    5432,
-    6379
-  ],
+  "forwardPorts": [3000, 3001, 5555, 5432, 6379],
   "portsAttributes": {
     "3000": {
       "label": "Web App",
