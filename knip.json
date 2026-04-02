@@ -1,5 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreWorkspaces": ["apps/app", "apps/api"],
+  "vitest": false,
   "workspaces": {
     ".": {
       "entry": ["*.ts", "*.js"],

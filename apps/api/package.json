@@ -34,6 +34,7 @@
 		"zod": "^4.1.13"
 	},
 	"devDependencies": {
+		"@repo/testing": "workspace:*",
 		"@repo/typescript-config": "workspace:*",
 		"@rolldown/binding-linux-x64-gnu": "1.0.0-rc.12",
 		"@types/node": "24.10.1",
