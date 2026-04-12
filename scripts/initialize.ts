@@ -62,7 +62,6 @@ const setupEnvironmentVariables = async () => {
     { source: join("apps", "web"), target: ".env.local" },
     { source: join("packages", "cms"), target: ".env.local" },
     { source: join("packages", "database"), target: ".env" },
-    { source: join("packages", "internationalization"), target: ".env.local" },
   ];
 
   for (const { source, target } of files) {
