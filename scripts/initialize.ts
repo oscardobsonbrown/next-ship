@@ -70,15 +70,19 @@ const setupEnvironmentVariables = async () => {
 };
 
 const setupOrm = async (packageManager: string) => {
-  const filterCommand = packageManager === "npm" ? "--workspace" : "--filter";
+  const databaseUrl = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL;
 
-  const command = [
-    packageManager,
-    "run",
-    "build",
-    filterCommand,
-    "@repo/database",
-  ].join(" ");
+  if (!databaseUrl) {
+    return;
+  }
+
+  let command = `${packageManager} --filter @repo/database run build`;
+
+  if (packageManager === "npm") {
+    command = "npm run build --workspace @repo/database";
+  } else if (packageManager === "yarn") {
+    command = "yarn workspace @repo/database build";
+  }
 
   await exec(command, execSyncOpts);
 };
